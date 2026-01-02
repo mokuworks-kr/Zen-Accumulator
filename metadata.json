@@ -1,5 +1,5 @@
 {
-  "name": "suma — sum your time, find your void.",
-  "description": "Minimalist meditation time tracker focusing on the paradox of \"adding to empty.\"",
+  "name": "suma",
+  "description": "sum your time, find your void.",
   "requestFramePermissions": []
 }

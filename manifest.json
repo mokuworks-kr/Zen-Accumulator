@@ -1,7 +1,7 @@
 {
   "name": "suma",
   "short_name": "suma",
-  "description": "Minimalist meditation time tracker focusing on the paradox of \"adding to empty.\"",
+  "description": "sum your time, find your void.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#1c1917",
