@@ -1,7 +1,7 @@
 {
-  "name": "ZenAccumulator",
-  "short_name": "ZenAcc",
-  "description": "Minimalist meditation tracker for cumulative practice time.",
+  "name": "suma",
+  "short_name": "suma",
+  "description": "Minimalist meditation time tracker focusing on the paradox of \"adding to empty.\"",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#1c1917",
