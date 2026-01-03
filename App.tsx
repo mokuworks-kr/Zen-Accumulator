@@ -1,17 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { signInWithPopup, onAuthStateChanged, signOut, User } from 'firebase/auth';
-import { auth, googleProvider } from './firebase';
-
 import AccumulatorDisplay from './components/AccumulatorDisplay';
 import SessionLogger from './components/SessionLogger';
 import HistorySection from './components/HistorySection';
 import Navigation from './components/Navigation';
 import TimerView from './views/TimerView';
 import GlobeView from './views/GlobeView';
-import LoginView from './views/LoginView';
 import { STORAGE_KEY } from './utils';
 import { Session, MeditationState } from './types';
-import { LogOut } from 'lucide-react';
 
 // 탭 종류 정의
 type Tab = 'home' | 'history' | 'timer' | 'globe';
@@ -23,71 +18,19 @@ interface Ripple {
 }
 
 const App: React.FC = () => {
-  // Auth State
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isGuest, setIsGuest] = useState(false); // Dev: Guest mode state
-  const [authLoading, setAuthLoading] = useState(true);
-
-  // App State
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [totalMinutes, setTotalMinutes] = useState<number>(0);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [mounted, setMounted] = useState(false);
   
-  // Ripple State
+  // Ripple State (이전 방식 복구: HSL 그라디언트 저장)
   const [ripples, setRipples] = useState<Ripple[]>([]);
 
   // History Tab Highlight State
   const [highlightHistory, setHighlightHistory] = useState(false);
 
-  // Listen for auth state changes
+  // 초기 데이터 로드
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      setAuthLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const handleLogin = async (providerName: 'google' | 'apple' | 'guest') => {
-      if (providerName === 'guest') {
-          // Dev: Enable guest mode
-          setIsGuest(true);
-          return;
-      }
-
-      if (providerName === 'google') {
-          try {
-              await signInWithPopup(auth, googleProvider);
-              // onAuthStateChanged will handle the state update
-          } catch (error) {
-              console.error("Login Failed", error);
-              // In a real app, you would show a toast/error message here
-          }
-      } else {
-          alert("Apple Login is coming soon.");
-      }
-  };
-
-  const handleLogout = async () => {
-      if (isGuest) {
-          setIsGuest(false);
-          return;
-      }
-
-      try {
-          await signOut(auth);
-      } catch (error) {
-          console.error("Logout Failed", error);
-      }
-  };
-
-  // 초기 데이터 로드 (Only if logged in or guest)
-  useEffect(() => {
-    if (!currentUser && !isGuest) return;
-
-    // TODO: In the future, load from Firestore using currentUser.uid
-    // For now, we still use local storage
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
@@ -99,27 +42,31 @@ const App: React.FC = () => {
       }
     }
     setMounted(true);
-  }, [currentUser, isGuest]);
+  }, []);
 
   // 데이터 저장
   useEffect(() => {
-    if (mounted && (currentUser || isGuest)) {
+    if (mounted) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ totalMinutes, sessions }));
     }
-  }, [totalMinutes, sessions, mounted, currentUser, isGuest]);
+  }, [totalMinutes, sessions, mounted]);
 
+  // 이전에 알려드린 랜덤 HSL 그라디언트 로직
   const triggerRipple = useCallback(() => {
     const id = Date.now();
+    // 0~360도 색상환에서 랜덤 선택
     const h1 = Math.floor(Math.random() * 360);
-    const h2 = (h1 + 60) % 360; 
+    const h2 = (h1 + 60) % 360; // 유사색 조합
     
     const c1 = `hsl(${h1}, 70%, 60%)`;
     const c2 = `hsl(${h2}, 80%, 60%)`;
     
+    // 원형 그라디언트 생성
     const gradient = `radial-gradient(circle, ${c1}, ${c2}, transparent 70%)`;
     
     setRipples(prev => [...prev, { id, gradient }]);
 
+    // 1.5초 후 제거 (애니메이션 시간과 맞춤)
     setTimeout(() => {
       setRipples(prev => prev.filter(r => r.id !== id));
     }, 1500);
@@ -127,6 +74,7 @@ const App: React.FC = () => {
 
   const handleAddMinutes = useCallback((minutes: number) => {
     if (minutes > 0) {
+      // 1. 양수 시간(추가)일 때만 세션 기록 및 시각적 효과 발생
       const newSession: Session = {
           id: Date.now(),
           date: new Date().toISOString(),
@@ -139,6 +87,8 @@ const App: React.FC = () => {
       setHighlightHistory(true);
       setTimeout(() => setHighlightHistory(false), 350);
     } else if (minutes < 0) {
+      // 2. 음수 시간(감소) 처리 - History에도 반영되도록 세션 추가
+      // 단, 0분 미만으로 내려가지 않도록 실제 차감 가능한 시간만 기록
       const actualSubtraction = (totalMinutes + minutes < 0) ? -totalMinutes : minutes;
       
       if (actualSubtraction !== 0) {
@@ -153,20 +103,6 @@ const App: React.FC = () => {
     }
   }, [totalMinutes, triggerRipple]);
 
-  // Loading Screen (Splash)
-  if (authLoading) {
-      return <div className="min-h-screen bg-zen-bg flex items-center justify-center text-zen-muted animate-pulse"></div>;
-  }
-
-  // Login Screen (Check for both user and guest mode)
-  if (!currentUser && !isGuest) {
-      return (
-          <div className="h-[100dvh] bg-zen-bg text-zen-text font-sans">
-              <LoginView onLogin={handleLogin} />
-          </div>
-      );
-  }
-
   if (!mounted) return <div className="min-h-screen bg-zen-bg" />;
 
   return (
@@ -177,6 +113,7 @@ const App: React.FC = () => {
         {ripples.map(ripple => (
             <div
                 key={ripple.id}
+                // animate-ripple 클래스가 index.html의 tailwind 설정에 있어야 함
                 className="absolute top-1/2 left-1/2 w-[100vw] h-[100vw] -ml-[50vw] -mt-[50vw] rounded-full opacity-0 animate-ripple origin-center mix-blend-screen blur-xl"
                 style={{ background: ripple.gradient }}
             />
@@ -187,19 +124,6 @@ const App: React.FC = () => {
       <main className="flex-1 overflow-y-auto relative custom-scrollbar z-10">
         {activeTab === 'home' && (
           <div className="h-full flex flex-col justify-center animate-fade-in relative">
-             
-             {/* Logout Button (Temporary placement) */}
-             <div className="absolute top-4 right-4 z-50">
-                <button 
-                  onClick={handleLogout}
-                  className="p-2 text-zen-muted hover:text-zen-text transition-colors opacity-50 hover:opacity-100 flex items-center gap-2"
-                  aria-label="Logout"
-                >
-                  {isGuest && <span className="text-[10px] uppercase tracking-wider text-zen-muted/50 border border-zen-muted/20 px-1 rounded">Dev</span>}
-                  <LogOut size={16} />
-                </button>
-             </div>
-
              <div className="flex-1 flex items-center justify-center">
                 <AccumulatorDisplay totalMinutes={totalMinutes} />
              </div>
