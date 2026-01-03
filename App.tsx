@@ -25,6 +25,7 @@ interface Ripple {
 const App: React.FC = () => {
   // Auth State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isGuest, setIsGuest] = useState(false); // Dev: Guest mode state
   const [authLoading, setAuthLoading] = useState(true);
 
   // App State
@@ -48,7 +49,13 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  const handleLogin = async (providerName: 'google' | 'apple') => {
+  const handleLogin = async (providerName: 'google' | 'apple' | 'guest') => {
+      if (providerName === 'guest') {
+          // Dev: Enable guest mode
+          setIsGuest(true);
+          return;
+      }
+
       if (providerName === 'google') {
           try {
               await signInWithPopup(auth, googleProvider);
@@ -63,6 +70,11 @@ const App: React.FC = () => {
   };
 
   const handleLogout = async () => {
+      if (isGuest) {
+          setIsGuest(false);
+          return;
+      }
+
       try {
           await signOut(auth);
       } catch (error) {
@@ -70,9 +82,9 @@ const App: React.FC = () => {
       }
   };
 
-  // 초기 데이터 로드 (Only if logged in)
+  // 초기 데이터 로드 (Only if logged in or guest)
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser && !isGuest) return;
 
     // TODO: In the future, load from Firestore using currentUser.uid
     // For now, we still use local storage
@@ -87,14 +99,14 @@ const App: React.FC = () => {
       }
     }
     setMounted(true);
-  }, [currentUser]);
+  }, [currentUser, isGuest]);
 
   // 데이터 저장
   useEffect(() => {
-    if (mounted && currentUser) {
+    if (mounted && (currentUser || isGuest)) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ totalMinutes, sessions }));
     }
-  }, [totalMinutes, sessions, mounted, currentUser]);
+  }, [totalMinutes, sessions, mounted, currentUser, isGuest]);
 
   const triggerRipple = useCallback(() => {
     const id = Date.now();
@@ -146,8 +158,8 @@ const App: React.FC = () => {
       return <div className="min-h-screen bg-zen-bg flex items-center justify-center text-zen-muted animate-pulse"></div>;
   }
 
-  // Login Screen
-  if (!currentUser) {
+  // Login Screen (Check for both user and guest mode)
+  if (!currentUser && !isGuest) {
       return (
           <div className="h-[100dvh] bg-zen-bg text-zen-text font-sans">
               <LoginView onLogin={handleLogin} />
@@ -180,9 +192,10 @@ const App: React.FC = () => {
              <div className="absolute top-4 right-4 z-50">
                 <button 
                   onClick={handleLogout}
-                  className="p-2 text-zen-muted hover:text-zen-text transition-colors opacity-50 hover:opacity-100"
+                  className="p-2 text-zen-muted hover:text-zen-text transition-colors opacity-50 hover:opacity-100 flex items-center gap-2"
                   aria-label="Logout"
                 >
+                  {isGuest && <span className="text-[10px] uppercase tracking-wider text-zen-muted/50 border border-zen-muted/20 px-1 rounded">Dev</span>}
                   <LogOut size={16} />
                 </button>
              </div>

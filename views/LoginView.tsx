@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface LoginViewProps {
-  onLogin: (provider: 'google' | 'apple') => void;
+  onLogin: (provider: 'google' | 'apple' | 'guest') => void;
 }
 
 const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
@@ -58,6 +58,16 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
           </svg>
           Continue with Google
         </button>
+
+        {/* Guest Login (Dev Only) */}
+        <div className="pt-4 flex justify-center">
+             <button 
+                onClick={() => onLogin('guest')}
+                className="text-xs text-zen-muted/40 hover:text-zen-muted hover:underline transition-colors"
+             >
+                 [Dev] Skip Login (Guest)
+             </button>
+        </div>
 
       </div>
 
