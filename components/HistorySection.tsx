@@ -86,7 +86,7 @@ const CalendarView: React.FC<{ stats: DailyStat[] }> = ({ stats }) => {
 
   return (
     // Restricted width on desktop for Calendar to keep cells square-ish
-    <div className="w-full max-w-md md:max-w-xl mx-auto animate-fade-in flex flex-col">
+    <div className="w-full max-w-md mx-auto animate-fade-in flex flex-col">
       {/* Month Navigation */}
       <div className="flex items-center justify-between mb-4 px-2">
         <button onClick={prevMonth} className="p-2 text-zen-muted hover:text-zen-text transition-colors">
@@ -200,8 +200,9 @@ const ListView: React.FC<{ stats: DailyStat[] }> = ({ stats }) => {
   }
 
   return (
-    // Responsive grid layout
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full animate-slide-up">
+    // Reverting to a single column flex stack max-w-md to ensure perfect centering on desktop.
+    // The previous 2-column grid caused items to be left-aligned when there were few items.
+    <div className="flex flex-col gap-3 w-full max-w-md mx-auto animate-slide-up">
       {stats.map((stat) => {
         return (
           <div 
@@ -263,8 +264,9 @@ const HistorySection: React.FC<HistorySectionProps> = ({ sessions }) => {
   }, [sessions]);
 
   return (
-    // Expanded max-width for tablet/desktop
-    <div className="w-full max-w-md md:max-w-6xl mx-auto px-6 py-6 md:py-12 min-h-[50vh] flex flex-col items-center">
+    // Main container handles overall width. 
+    // ListView now has its own internal max-w-md mx-auto to ensure centering.
+    <div className="w-full max-w-md md:max-w-2xl mx-auto px-6 py-6 md:py-12 min-h-[50vh] flex flex-col items-center">
       
       {/* Mode Toggle (Timer Style) */}
       <div className="flex bg-zen-surface/50 p-1 rounded-full mb-12 border border-white/5">

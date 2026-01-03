@@ -146,7 +146,7 @@ const App: React.FC = () => {
         )}
 
         {activeTab === 'history' && (
-          <div className="animate-fade-in pt-10">
+          <div className="animate-fade-in">
             <HistorySection sessions={sessions} />
           </div>
         )}

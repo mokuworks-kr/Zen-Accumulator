@@ -34,7 +34,7 @@ const Navigation: React.FC<NavProps> = ({ activeTab, onTabChange, highlightHisto
               onClick={() => onTabChange(item.id)}
               className={`flex flex-col items-center gap-1.5 p-2 transition-all duration-200 ease-out ${
                 isActive ? 'text-zen-text scale-105' : 'text-zen-muted hover:text-zen-text/70'
-              } ${isHighlighted ? '!text-white drop-shadow-[0_0_12px_rgba(255,255,255,0.8)] scale-105' : ''}`}
+              } ${isHighlighted ? '!text-white drop-shadow-[0_0_12px_rgba(255,255,255,0.8)]' : ''}`}
             >
               <item.icon 
                 strokeWidth={isActive ? 2.5 : 1.5} 

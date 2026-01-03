@@ -167,8 +167,8 @@ const TimerView: React.FC<TimerProps> = ({ onFinish }) => {
         </button>
       </div>
 
-      {/* Main Display */}
-      <div className="flex-1 flex flex-col items-center justify-center w-full max-w-sm">
+      {/* Main Display - Updated max-w-sm to max-w-md for consistency */}
+      <div className="flex-1 flex flex-col items-center justify-center w-full max-w-md">
         <div className="relative mb-16">
             <OdometerText 
                 value={formatTime(displayTime)}
