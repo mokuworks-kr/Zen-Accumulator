@@ -133,7 +133,8 @@ const App: React.FC = () => {
       </div>
 
       {/* 메인 콘텐츠 영역 (스크롤 가능) - z-index 10 */}
-      <main className="flex-1 overflow-y-auto relative custom-scrollbar z-10">
+      {/* Globe 탭일 때는 스크롤을 막아 인터랙션을 방해하지 않도록 처리 */}
+      <main className={`flex-1 relative custom-scrollbar z-10 ${activeTab === 'globe' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
         {activeTab === 'home' && (
           <div className="h-full flex flex-col justify-center animate-fade-in relative">
              <div className="flex-1 flex items-center justify-center">
