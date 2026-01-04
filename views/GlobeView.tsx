@@ -18,7 +18,15 @@ const GlobeView: React.FC = () => {
   // Container dimensions for responsive globe
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [countries, setCountries] = useState({ features: [] });
   const globeEl = useRef<GlobeMethods | undefined>(undefined);
+
+  // Load GeoJSON for country boundaries
+  useEffect(() => {
+    fetch('https://vasturiano.github.io/react-globe.gl/example/datasets/ne_110m_admin_0_countries.geojson')
+      .then(res => res.json())
+      .then(setCountries);
+  }, []);
 
   // ResizeObserver for reliable dimension tracking
   useEffect(() => {
@@ -37,7 +45,7 @@ const GlobeView: React.FC = () => {
     return () => observer.disconnect();
   }, []);
 
-  // Handle Globe Ready state
+  // Handle Globe Ready state and inject Three.js material properties
   const handleGlobeReady = () => {
     if (globeEl.current) {
       const controls = globeEl.current.controls();
@@ -46,8 +54,22 @@ const GlobeView: React.FC = () => {
       controls.enableDamping = true;
       controls.dampingFactor = 0.1;
       
-      // Set initial POV
-      globeEl.current.pointOfView({ altitude: 2.2 }, 0);
+      // Always keep globe centered
+      controls.enablePan = false;
+      
+      // Access the underlying Three.js material of the globe sphere
+      // This allows us to make the sphere itself transparent
+      const globeMaterial = globeEl.current.globeMaterial() as any;
+      if (globeMaterial) {
+        globeMaterial.transparent = true;
+        // Setting a low opacity allows seeing the "back" of the globe 
+        // while the "front" shell provides a slight tint/occlusion for depth.
+        globeMaterial.opacity = 0.15; 
+        globeMaterial.color.set('#1c1917'); // Ensure it matches our zen-bg
+      }
+      
+      // Set initial POV with a higher altitude for a smaller initial size
+      globeEl.current.pointOfView({ altitude: 3.5 }, 0);
     }
   };
 
@@ -61,15 +83,14 @@ const GlobeView: React.FC = () => {
 
   // Dummy Data for Points
   const pointsData: CityData[] = useMemo(() => [
-    { name: 'Seoul', lat: 37.5665, lng: 126.9780, size: 0.5, color: '#e7e5e4', altitude: 0.01 },
-    { name: 'New York', lat: 40.7128, lng: -74.0060, size: 0.5, color: '#e7e5e4', altitude: 0.01 },
-    { name: 'London', lat: 51.5074, lng: -0.1278, size: 0.5, color: '#e7e5e4', altitude: 0.01 },
-    { name: 'Tokyo', lat: 35.6762, lng: 139.6503, size: 0.5, color: '#e7e5e4', altitude: 0.01 },
-    // Add some random smaller points nearby to simulate users
-    { name: 'User 1', lat: 37.2, lng: 127.1, size: 0.25, color: '#a8a29e', altitude: 0.01 },
-    { name: 'User 2', lat: 41.0, lng: -73.5, size: 0.25, color: '#a8a29e', altitude: 0.01 },
-    { name: 'User 3', lat: 51.8, lng: 0.1, size: 0.25, color: '#a8a29e', altitude: 0.01 },
-    { name: 'User 4', lat: 35.2, lng: 139.2, size: 0.25, color: '#a8a29e', altitude: 0.01 },
+    { name: 'Seoul', lat: 37.5665, lng: 126.9780, size: 0.6, color: '#ffffff', altitude: 0.015 },
+    { name: 'New York', lat: 40.7128, lng: -74.0060, size: 0.6, color: '#ffffff', altitude: 0.015 },
+    { name: 'London', lat: 51.5074, lng: -0.1278, size: 0.6, color: '#ffffff', altitude: 0.015 },
+    { name: 'Tokyo', lat: 35.6762, lng: 139.6503, size: 0.6, color: '#ffffff', altitude: 0.015 },
+    { name: 'User 1', lat: 37.2, lng: 127.1, size: 0.3, color: 'rgba(255,255,255,0.7)', altitude: 0.015 },
+    { name: 'User 2', lat: 41.0, lng: -73.5, size: 0.3, color: 'rgba(255,255,255,0.7)', altitude: 0.015 },
+    { name: 'User 3', lat: 51.8, lng: 0.1, size: 0.3, color: 'rgba(255,255,255,0.7)', altitude: 0.015 },
+    { name: 'User 4', lat: 35.2, lng: 139.2, size: 0.3, color: 'rgba(255,255,255,0.7)', altitude: 0.015 },
   ], []);
 
   return (
@@ -105,13 +126,24 @@ const GlobeView: React.FC = () => {
             height={dimensions.height}
             onGlobeReady={handleGlobeReady}
             
-            // Visuals
-            globeImageUrl="//unpkg.com/three-globe/example/img/earth-night.jpg"
+            // Visuals: Pure Wireframe Style
             backgroundColor="rgba(0,0,0,0)"
-            atmosphereColor="#57534e" // stone-600
-            atmosphereAltitude={0.2}
+            showAtmosphere={true}
+            atmosphereColor="#44403c"
+            atmosphereAltitude={0.12}
             
-            // Points
+            // The Sphere (Occlusion Shell)
+            showGlobe={true}
+            globeColor="#1c1917" // Color used in onGlobeReady to set the base
+            
+            // Country Outlines
+            polygonsData={countries.features}
+            polygonCapColor={() => 'rgba(0, 0, 0, 0)'} // Transparent fill
+            polygonSideColor={() => 'rgba(0, 0, 0, 0)'}
+            polygonStrokeColor={() => '#e7e5e4'} // Bright white stroke
+            polygonStrokeWidth={0.5}
+            
+            // Points (Users)
             pointsData={pointsData}
             pointLat="lat"
             pointLng="lng"
@@ -123,6 +155,8 @@ const GlobeView: React.FC = () => {
             
             // Interaction settings
             animateIn={true}
+            minAltitude={1.5}
+            maxAltitude={3.5} // Maximum zoom out set to initial state
           />
         )}
       </div>
