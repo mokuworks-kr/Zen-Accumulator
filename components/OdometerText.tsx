@@ -1,11 +1,13 @@
+
 import React from 'react';
 
 const OdometerDigit: React.FC<{ char: string }> = ({ char }) => {
   const isNumber = /^[0-9]$/.test(char);
 
-  // If not a number (e.g., ':', 'h', 'm', space), render normally
+  // If not a number (e.g., ':', 'h', 'm', space, comma), render normally
   if (!isNumber) {
-    return <span className="inline-block text-zen-muted/80">{char}</span>;
+    // Removed text-zen-muted/80 to make it match the digit color
+    return <span className="inline-block">{char}</span>;
   }
 
   const digit = parseInt(char, 10);
@@ -45,7 +47,7 @@ export const OdometerText: React.FC<OdometerTextProps> = ({ value, className = '
   return (
     <div className={`flex justify-center items-baseline leading-none select-none ${className}`}>
       {value.split('').map((char, index) => (
-        // Use index as key. For fixed-format time strings (e.g. 05:00), this works perfectly.
+        // Use index as key. For fixed-format strings, this works well.
         <OdometerDigit key={index} char={char} />
       ))}
     </div>
