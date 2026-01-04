@@ -1,10 +1,51 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
+import Globe, { GlobeMethods } from 'react-globe.gl';
+
+// Define the type for our city data
+interface CityData {
+  name: string;
+  lat: number;
+  lng: number;
+  size: number;
+  color: string;
+}
 
 const GlobeView: React.FC = () => {
   // Mock active user count
   const [activeUsers, setActiveUsers] = useState(1243);
+  
+  // Container dimensions for responsive globe
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const globeEl = useRef<GlobeMethods | undefined>(undefined);
 
-  // Slowly fluctuate count to simulate live data
+  // Measure container on mount and resize
+  useEffect(() => {
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        setDimensions({
+          width: containerRef.current.offsetWidth,
+          height: containerRef.current.offsetHeight,
+        });
+      }
+    };
+
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
+    return () => window.removeEventListener('resize', updateDimensions);
+  }, []);
+
+  // Set initial auto-rotation
+  useEffect(() => {
+    if (globeEl.current) {
+      globeEl.current.controls().autoRotate = true;
+      globeEl.current.controls().autoRotateSpeed = 0.5;
+      // Set initial distance slightly further away for a nice overview
+      globeEl.current.pointOfView({ altitude: 2.5 }, 0);
+    }
+  }, []);
+
+  // Slowly fluctuate user count
   useEffect(() => {
     const interval = setInterval(() => {
       setActiveUsers(prev => prev + Math.floor(Math.random() * 5) - 2);
@@ -12,46 +53,74 @@ const GlobeView: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Dummy Data for Points
+  const pointsData: CityData[] = useMemo(() => [
+    { name: 'Seoul', lat: 37.5665, lng: 126.9780, size: 0.5, color: '#e7e5e4' },
+    { name: 'New York', lat: 40.7128, lng: -74.0060, size: 0.5, color: '#e7e5e4' },
+    { name: 'London', lat: 51.5074, lng: -0.1278, size: 0.5, color: '#e7e5e4' },
+    { name: 'Tokyo', lat: 35.6762, lng: 139.6503, size: 0.5, color: '#e7e5e4' },
+    // Add some random smaller points nearby to simulate users
+    { name: 'User 1', lat: 37.2, lng: 127.1, size: 0.2, color: '#78716c' },
+    { name: 'User 2', lat: 41.0, lng: -73.5, size: 0.2, color: '#78716c' },
+    { name: 'User 3', lat: 51.8, lng: 0.1, size: 0.2, color: '#78716c' },
+    { name: 'User 4', lat: 35.2, lng: 139.2, size: 0.2, color: '#78716c' },
+  ], []);
+
   return (
-    <div className="h-full flex flex-col items-center p-6 animate-fade-in relative">
+    <div className="h-full flex flex-col items-center relative animate-fade-in overflow-hidden">
        
-       {/* Container to enforce alignment with other tabs */}
-       <div className="w-full max-w-md h-full flex flex-col items-center">
-            {/* Top Section: Aligned with where Toggle is in other views */}
-           <div className="flex flex-col items-center mb-8">
-              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-zen-surface/30 border border-white/5 text-[10px] font-medium text-zen-muted uppercase tracking-wider mb-6">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse"/>
-                Live Now
-              </div>
-              
-              <h2 className="text-4xl md:text-5xl font-extralight text-zen-text text-center tracking-tighter">
-                {activeUsers.toLocaleString()}
-              </h2>
-              <span className="text-sm text-zen-muted/60 font-light mt-1 tracking-wide">
-                 minds meditating
-              </span>
-           </div>
-
-          {/* Globe Placeholder - Centered in remaining space */}
-          <div className="flex-1 flex items-center justify-center w-full relative -mt-8">
-            <div className="w-64 h-64 md:w-80 md:h-80 rounded-full bg-gradient-to-br from-[#1c1917] to-[#0c0a09] shadow-2xl flex items-center justify-center border border-white/5 relative overflow-hidden animate-fade-in">
-                {/* World Map Texture Overlay */}
-                <div className="absolute inset-0 opacity-30 bg-[url('https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/World_map_blank_without_borders.svg/2000px-World_map_blank_without_borders.svg.png')] bg-cover bg-center mix-blend-overlay"></div>
-                
-                {/* Inner Glow */}
-                <div className="absolute inset-0 bg-radial-gradient from-transparent via-transparent to-black/80 pointer-events-none"></div>
-                
-                {/* Subtle Atmosphere Glow */}
-                <div className="absolute inset-0 rounded-full shadow-[inset_0_0_40px_rgba(255,255,255,0.05)] pointer-events-none"></div>
-
-                {/* Random Activity Dots */}
-                <div className="absolute top-[35%] left-[45%] w-1 h-1 bg-white rounded-full animate-ping opacity-80 duration-[3000ms]"></div>
-                <div className="absolute bottom-[40%] right-[30%] w-0.5 h-0.5 bg-white rounded-full animate-ping delay-700 opacity-60 duration-[4000ms]"></div>
-                <div className="absolute top-[50%] left-[20%] w-1 h-1 bg-white rounded-full animate-ping delay-1000 opacity-50 duration-[2500ms]"></div>
-                <div className="absolute bottom-[25%] left-[60%] w-0.5 h-0.5 bg-white rounded-full animate-ping delay-[2000ms] opacity-40 duration-[5000ms]"></div>
-            </div>
+       {/* Top Overlay: Stats */}
+       {/* Pointer-events-none ensures drag works on the globe even if mouse is over this area (except the text itself if needed, but safer to let clicks pass through) */}
+       <div className="absolute top-6 left-0 right-0 z-10 flex flex-col items-center pointer-events-none">
+          <div className="flex flex-col items-center">
+             <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-zen-surface/30 border border-white/5 text-[10px] font-medium text-zen-muted uppercase tracking-wider mb-6 backdrop-blur-sm">
+               <span className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse"/>
+               Live Now
+             </div>
+             
+             <h2 className="text-4xl md:text-5xl font-extralight text-zen-text text-center tracking-tighter drop-shadow-2xl">
+               {activeUsers.toLocaleString()}
+             </h2>
+             <span className="text-sm text-zen-muted/80 font-light mt-1 tracking-wide drop-shadow-md">
+                minds meditating
+             </span>
           </div>
        </div>
+
+      {/* 3D Globe Container */}
+      <div 
+        ref={containerRef} 
+        className="flex-1 w-full flex items-center justify-center cursor-move"
+        style={{ background: 'transparent' }} // Ensure transparency so app bg shows (or use specific bg prop)
+      >
+        {dimensions.width > 0 && (
+          <Globe
+            ref={globeEl}
+            width={dimensions.width}
+            height={dimensions.height}
+            
+            // Visuals
+            globeImageUrl="//unpkg.com/three-globe/example/img/earth-night.jpg"
+            backgroundColor="rgba(0,0,0,0)" // Transparent to let app bg show, or match #1c1917
+            atmosphereColor="#44403c" // Stone-700 ish
+            atmosphereAltitude={0.15}
+            
+            // Points
+            pointsData={pointsData}
+            pointLat="lat"
+            pointLng="lng"
+            pointColor="color"
+            pointAltitude={0.01}
+            pointRadius="size"
+            pointResolution={32} // Smoother circles
+            pointsMerge={true}
+            pointPulseBtn={true} // Add a subtle pulse to points
+            
+            // Interaction
+            animateIn={true}
+          />
+        )}
+      </div>
     </div>
   );
 };
